@@ -9,13 +9,22 @@ rcParams["font.size"] = 12
 
 using BenchmarkTools
 using DSP
-include("TDSEfcn.jl")
+dir = pwd()
+cd("/Users/felix/Coding/TDSEjulia/")
+include("../TDSEjulia/TDSEfcn.jl")
+cd(dir)
+
+
+using CSV
+using DataFrames
+
+# loading pump pulse
 
 
 # Simulation Parameters
 
 N = 500 # Number of points in spatial domain
-num_steps = 10000 # Number of time steps
+num_steps = 50000 # Number of time steps
 
 
 # Define spatial and time domains
@@ -26,7 +35,7 @@ xEnd = x[end]
 
 Δx = x[2] - x[1] # Spatial step size
 
-t= collect(LinRange(-50/t0,50/t0,num_steps)) # Time domain (not used
+t= collect(LinRange(-150/t0,150/t0,num_steps)) # Time domain (not used
 
 Δt = t[2]-t[1] # Time step size
 
@@ -56,10 +65,10 @@ xr = 5/x0 #  measurement reference plane in x0
 
 # Define optical pulse
 
-fwhm = 10 / t0 # fwhm of pulse in fs
-yc = 2060 / x0 # central wavelength in nm
+fwhm = 80 / t0 # fwhm of pulse in fs
+yc = 1690 / x0 # central wavelength in nm
 phi_ce = π # carrier envelope phase in radians
-F = 10 # Field strength in V/nm
+F = 15 # Field strength in V/nm
 
 pulse1 = pulseParams(fwhm = fwhm, yc = yc, phi_ce = phi_ce, F = F)
 
@@ -84,13 +93,13 @@ delayVals = collect(LinRange(-30/t0 , 30/t0, delaySteps))
 
 pulsePump = pulseParams(fwhm = 15/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 10)
 
-signalDuration = 10/t0
+signalDuration = 8/t0
 
 pumpPulseField = pulsefromStruct(t,pulsePump)
 
 pulseList = []
 
-ysignal = 2000/x0
+ysignal = 1690/x0
 
 for val in delayVals
     #push!(pulseList,tukeyPulse(t,1,val,0.5))
