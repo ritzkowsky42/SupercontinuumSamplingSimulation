@@ -10,10 +10,11 @@ using Colors
 
 using BenchmarkTools
 
-dir = pwd()
-cd("/Users/felix/Coding/TDSEjulia/")
-include("../TDSEjulia/TDSEfcn.jl")
-cd(dir)
+# dir = pwd()
+# cd("/Users/felix/Coding/TDSEjulia/")
+# include("../TDSEjulia/TDSEfcn.jl")
+# cd(dir)
+include("C:\\Users\\ritzk\\Coding\\TDSEjulia.jl\\TDSEfcn.jl")
 
 using DSP
 using JLD2
@@ -117,16 +118,16 @@ end
 
 print("Single Energy Calculation")
 
-@time jCEP = pulseSweep(u0,pot1,fieldList,E_fermi,5/x0,Δx,Δt,N,num_steps)
+# @time jCEP = pulseSweep(u0,pot1,fieldList,E_fermi,5/x0,Δx,Δt,N,num_steps)
 
 
-samplingCurrent = zeros(length(delayVals))
-samplingCurrent = (sum(jCEP,dims=1)' .- mean(sum(jCEP,dims=1)[1,1:100]'))./maximum((sum(jCEP,dims=1)' .- mean(sum(jCEP[:,:],dims=1)[1,1:100]')))
+# samplingCurrent = zeros(length(delayVals))
+# samplingCurrent = (sum(jCEP,dims=1)' .- mean(sum(jCEP,dims=1)[1,1:100]'))./maximum((sum(jCEP,dims=1)' .- mean(sum(jCEP[:,:],dims=1)[1,1:100]')))
 
-# convert array to vector
-samplingCurrent = vec(samplingCurrent)
+# # convert array to vector
+# samplingCurrent = vec(samplingCurrent)
 
-samplingCurrent = samplingCurrent .- mean(samplingCurrent[1:20])
+# samplingCurrent = samplingCurrent .- mean(samplingCurrent[1:20])
 
 # @time jSweep = pulseSweepSweep(pot1,fieldList,E,T,xr,Δx,Δt,N,num_steps)
 
@@ -138,6 +139,7 @@ stepHeight = Wf + E_fermi
 a =[]
 
 for i in ProgressBar(1:n)
+    print(i)
     VoscTemp = genPotential(pot1,fieldList[i] ,x, num_steps, N)
     jTemp = groundStateSweep(VoscTemp,E,xr,Δx,Δt,N,num_steps)
     qOut = sum(jTemp.*Δt,dims=1)'

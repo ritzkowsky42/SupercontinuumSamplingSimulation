@@ -10,10 +10,11 @@ using Colors
 
 using BenchmarkTools
 
-dir = pwd()
-cd("/Users/felix/Coding/TDSEjulia/")
-include("../TDSEjulia/TDSEfcn.jl")
-cd(dir)
+# dir = pwd()
+# cd("/Users/felix/Coding/TDSEjulia/")
+# include("../TDSEjulia/TDSEfcn.jl")
+# cd(dir)
+include("C:\\Users\\ritzk\\Coding\\TDSEjulia.jl\\TDSEfcn.jl")
 
 using DSP
 using JLD2
@@ -81,7 +82,7 @@ Vosc = genPotential(pot1,field1,x, num_steps, N)
 u0 = statSolve(x, Vosc[1,:], E_fermi)
 
 # Define the ground state energies to be sampled
-nEnergy= 20
+nEnergy= 40
 
 E = collect(LinRange(2,6,nEnergy)) # Energy in eV
 T = 293.15 #293.15 # Room temperature in K
@@ -91,10 +92,10 @@ T = 293.15 #293.15 # Room temperature in K
 delaySteps = 300
 
 
-delayVals = collect(LinRange(-30/t0 , 30/t0, delaySteps))
+delayVals = collect(LinRange(-80/t0 , 80/t0, delaySteps))
 
 
-pulsePump = pulseParams(fwhm = 15/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 0.1)
+pulsePump = pulseParams(fwhm = 80/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 1)
 
 signalDuration = 8/t0
 
@@ -106,7 +107,7 @@ ysignal = 1690/x0
 
 for val in delayVals
     #push!(pulseList,tukeyPulse(t,1,val,0.5))
-    push!(pulseList,pulsefromStruct(t,pulseParams(fwhm = signalDuration, t0=val, yc = ysignal, phi_ce = 0, F =0.002)))
+    push!(pulseList,pulsefromStruct(t,pulseParams(fwhm = signalDuration, t0=val, yc = ysignal, phi_ce = 0, F =0.01)))
 end
 
 fieldList = []
@@ -119,14 +120,6 @@ print("Single Energy Calculation")
 
 @time jCEP = pulseSweep(u0,pot1,fieldList,E_fermi,5/x0,Δx,Δt,N,num_steps)
 
-
-samplingCurrent = zeros(length(delayVals))
-samplingCurrent = (sum(jCEP,dims=1)' .- mean(sum(jCEP,dims=1)[1,1:100]'))./maximum((sum(jCEP,dims=1)' .- mean(sum(jCEP[:,:],dims=1)[1,1:100]')))
-
-# convert array to vector
-samplingCurrent = vec(samplingCurrent)
-
-samplingCurrent = samplingCurrent .- mean(samplingCurrent[1:20])
 
 # @time jSweep = pulseSweepSweep(pot1,fieldList,E,T,xr,Δx,Δt,N,num_steps)
 
@@ -147,6 +140,21 @@ for i in ProgressBar(1:n)
     jTemp = []
     push!(a,i*2)
 end
+
+
+# Plotting the results
+
+
+
+samplingCurrent = zeros(length(delayVals))
+samplingCurrent = (sum(jCEP,dims=1)' .- mean(sum(jCEP,dims=1)[1,1:100]'))./maximum((sum(jCEP,dims=1)' .- mean(sum(jCEP[:,:],dims=1)[1,1:100]')))
+
+# convert array to vector
+samplingCurrent = vec(samplingCurrent)
+
+samplingCurrent = samplingCurrent .- mean(samplingCurrent[1:20])
+
+
 
 refpulse= pulsefromStruct(delayVals,pulseParams(fwhm = signalDuration, t0=0, yc = ysignal, phi_ce = 0, F = 1))
 
@@ -209,10 +217,10 @@ show()
 
 
 
-pad = 10000
+pad = 1000
 zerosPad = zeros(pad)
 
-tukeyWin = DSP.Windows.tukey(delaySteps,0.5)
+tukeyWin = DSP.Windows.tukey(delaySteps,0.002)
 
 plot(tukeyWin)
 show()
@@ -265,7 +273,7 @@ ax3.semilogy(freqs[begin:halfSize],abs.(specRef[begin:halfSize])./maximum(abs.(s
 ax3.semilogy(freqs[begin:halfSize],abs.(specAnalytical[begin:halfSize])./maximum(abs.(specAnalytical[begin:halfSize])),label="Analytical FN")
 
 # ax3.semilogy(freqs[begin:Int(delaySteps/2)],abs.(specAnalytical[begin:Int(delaySteps/2)])./maximum(abs.(specAnalytical[begin:Int(delaySteps/2)])),label="Analytical Pulse")
-ax3.set_xlim([0,1.2])
+# ax3.set_xlim([0,1.2])
 ax3.set_ylim([1e-4,1])
 ax3.set_ylabel("Amplitude in (arb.u.)")
 ax3.legend()

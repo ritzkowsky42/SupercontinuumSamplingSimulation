@@ -10,9 +10,11 @@ rcParams["font.size"] = 12
 using BenchmarkTools
 using DSP
 dir = pwd()
-cd("/Users/felix/Coding/TDSEjulia/")
-include("../TDSEjulia/TDSEfcn.jl")
-cd(dir)
+# cd("/Users/felix/Coding/TDSEjulia/")
+# cd("C:\\Users\\ritzk\\Coding\\TDSEjulia.jl")
+# pwd()
+include("C:\\Users\\ritzk\\Coding\\TDSEjulia.jl\\TDSEfcn.jl")
+# cd(dir)
 
 
 using CSV
