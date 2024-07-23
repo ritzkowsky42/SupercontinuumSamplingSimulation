@@ -7,7 +7,8 @@ rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.size"] = 12
 
 using Colors
-
+using CSV
+using DataFrames
 using BenchmarkTools
 
 # dir = pwd()
@@ -82,17 +83,17 @@ Vosc = genPotential(pot1,field1,x, num_steps, N)
 u0 = statSolve(x, Vosc[1,:], E_fermi)
 
 # Define the ground state energies to be sampled
-nEnergy= 40
+nEnergy= 20
 
 E = collect(LinRange(2,6,nEnergy)) # Energy in eV
 T = 293.15 #293.15 # Room temperature in K
 
 
 
-delaySteps = 300
+delaySteps = 600
 
 
-delayVals = collect(LinRange(-80/t0 , 80/t0, delaySteps))
+delayVals = collect(LinRange(-160/t0 , 160/t0, delaySteps))
 
 
 pulsePump = pulseParams(fwhm = 80/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 1)
@@ -263,7 +264,7 @@ freqs2= fftfreq(length(t)+2*pad,1/((t[2]-t[1])*t0))
 
 
 
-fig3,(ax3,ax4) = subplots(2,1,figsize = (16*cm,16*cm),sharex=true)
+fig3,(ax3,ax4) = subplots(2,1,figsize = (20*cm,16*cm),sharex=true)
 
 halfSize = Int((delaySteps+2*pad)/2)
 
@@ -273,10 +274,11 @@ ax3.semilogy(freqs[begin:halfSize],abs.(specRef[begin:halfSize])./maximum(abs.(s
 ax3.semilogy(freqs[begin:halfSize],abs.(specAnalytical[begin:halfSize])./maximum(abs.(specAnalytical[begin:halfSize])),label="Analytical FN")
 
 # ax3.semilogy(freqs[begin:Int(delaySteps/2)],abs.(specAnalytical[begin:Int(delaySteps/2)])./maximum(abs.(specAnalytical[begin:Int(delaySteps/2)])),label="Analytical Pulse")
-# ax3.set_xlim([0,1.2])
-ax3.set_ylim([1e-4,1])
+ax3.set_xlim([0,0.5])
+ax3.set_ylim([1e-8,1])
 ax3.set_ylabel("Amplitude in (arb.u.)")
 ax3.legend()
+ax3.legend(loc="lower right")
 
 #ax4 = ax3.twinx()
 ax4.plot(freqs[begin:halfSize],unwrap(angle.(specSample[begin:halfSize]))/π,label="Continuum State")
@@ -286,26 +288,26 @@ ax4.plot(freqs[begin:halfSize],unwrap(angle.(specAnalytical[begin:halfSize]))/π
 # ax4.plot(freqs[begin:Int(delaySteps/2)],unwrap(angle.(specAnalytical[begin:Int(delaySteps/2)]))/π,label="Analytical Pulse")
 ax4.set_xlabel("Frequency in (PHz)")
 ax4.set_ylabel("Phase in (π)")
-ax4.set_ylim([-0.3,0.3])
-ax4.legend()
+ax4.set_ylim([-5,10])
+ax4.legend(loc="upper right")
 fig3.savefig("SamplingVsRefSpec.png",dpi=600)
 fig3.savefig("SamplingVsRefSpec.pdf",dpi=600)
 show()
 
 
+CSV.write("SampledWaveform.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg),ref=refpulse.E, writeheader = false))
 
 plot(delayVals*t0,-qAll./maximum(-qAll,dims=1))
 show()
 
-transferFCN = specSample./specRef
-trasnferFNCSingle = specSampleSingle./specRef
-TransferFCNAnalytical = specAnalytical./specRef
+# transferFCN = specSample./specRef
+# trasnferFNCSingle = specSampleSingle./specRef
+# TransferFCNAnalytical = specAnalytical./specRef
 
-fig4,ax4 = subplots(1,1,figsize=(16*cm,16*cm))
-ax4.semilogy(freqs,abs.(transferFCN),label="Continuum State")
-ax4.semilogy(freqs,abs.(trasnferFNCSingle),label="Single Energy")
-ax4.semilogy(freqs,abs.(TransferFCNAnalytical),label="Analytical FN")
+# fig4,ax4 = subplots(1,1,figsize=(16*cm,16*cm))
+# ax4.semilogy(freqs,abs.(transferFCN),label="Continuum State")
+# ax4.semilogy(freqs,abs.(trasnferFNCSingle),label="Single Energy")
+# ax4.semilogy(freqs,abs.(TransferFCNAnalytical),label="Analytical FN")
 
-# jldsave("SamplingVsRef.jld2", qAvg,  qAll, samplingCurrent, refpulse,pulsePump)
  
-show()
+# show()

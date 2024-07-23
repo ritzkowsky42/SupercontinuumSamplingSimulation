@@ -27,29 +27,27 @@ degen = CSV.read("Waveforms/Degenerate1690.csv", DataFrame)
 
 # Converting time domain to Frequency domain
 
-spectrumSCG = fft(scg[:, 2])
 spectrumDegenerate = fft(degen[:, 2])
 
 # Creating the frequency axis
-freqsSCG = fftfreq(length(scg[:, 1]), 1 / (scg[2, 1] - scg[1, 1]))
 freqDeg = fftfreq(length(degen[:, 1]), 1 / (degen[2, 1] - degen[1, 1]))
 
 
 # Define Window Function with respect to specific frequencies
-freqStart = 0.12
-freqStop = 0.27
+freqStart = 0.15
+freqStop = 0.2
 
 # Find closest index of the frequency
-indexStop = argmin(abs.(freqsSCG .- freqStart))
-indexStart = argmin(abs.(freqsSCG .- freqStop))
+indexStop = argmin(abs.(freqDeg .- freqStart))
+indexStart = argmin(abs.(freqDeg .- freqStop))
 
 
 
 
 # create tukey window
-tukeyWindow = DSP.Windows.tukey(length(freqsSCG[indexStart:indexStop]), 0.4)
+tukeyWindow = DSP.Windows.tukey(length(freqDeg[indexStart:indexStop]), 0.4)
 
-window = zeros(length(freqsSCG))
+window = zeros(length(freqDeg))
 window[indexStart:indexStop] = tukeyWindow
 
 
@@ -62,11 +60,11 @@ fig2, ax2 = subplots(1, 1, figsize=(12, 8))
 # ax2.plot(freqsSCG[1:Int(length(freqsSCG) / 2)], abs.(spectrumSCG[1:Int(length(freqsSCG) / 2)]))
 # ax2.plot(freqDeg[1:Int(length(freqDeg) / 2)], abs.(spectrumDegenerate[1:Int(length(freqDeg) / 2)]))
 
-ax2.semilogy(freqsSCG, abs.(spectrumSCG).^2)
-ax2.semilogy(freqsSCG, window.*abs.(spectrumSCG).^2,color="red" )
+ax2.semilogy(freqDeg, abs.(spectrumDegenerate).^2)
+ax2.semilogy(freqDeg, window.*abs.(spectrumDegenerate).^2,color="red" )
 
 #ax2.semilogy(freqDeg, abs.(spectrumDegenerate).^2)
- ax2.set_xlim([0, 8])
+ax2.set_xlim([0, 8])
 ax2.set_xlabel("Frequency (PHz)")
 ax2.set_ylabel("Spectr. Intensity (arb.u.)")
 ax2.set_title("Spectrum Plot")
@@ -76,24 +74,24 @@ show()
 
 # filter the spectrum and backconvert to time domain
 
-filteredSpectrumSCG = spectrumSCG .* window.*2
-filterSCG = ifft(filteredSpectrumSCG)
+filteredSpectrumDeg = spectrumDegenerate .* window.*2
+filterDeg = ifft(filteredSpectrumDeg)
 
-scg[:,1] .-= scg[findmax(abs.(filterSCG))[2],1]
+degen[:,1] .-= degen[findmax(abs.(filterDeg))[2],1]
 
 
 # Creating the figure and axes
 
 fig3, ax3 = subplots(1, 1, figsize=(12, 8))
-ax3.plot(scg[:, 1], scg[:, 2])
-ax3.plot(scg[:, 1], filterSCG)
-ax3.plot(scg[:, 1], filterSCG.*DSP.Windows.tukey(length(filterSCG), 0.4))
+ax3.plot(degen[:, 1], degen[:, 2])
+ax3.plot(degen[:, 1], filterDeg)
+ax3.plot(degen[:, 1], filterDeg.*DSP.Windows.tukey(length(filterDeg), 0.4))
 ax3.set_xlabel("Time (fs)")
 ax3.set_ylabel("Field (arb.u.)")
 ax3.set_title("Filtered Waveform Plot")
+ 
 
-
-fig3.savefig("FilteredWaveformSCG.png", dpi=800)
+fig3.savefig("FilteredWaveformDeg.png", dpi=800)
 show()
 
-CSV.write("FilteredWaveformSCG.csv", DataFrame(time = reverse(scg[:, 1]), field = reverse((filterSCG./maximum(abs.(filterSCG))).*DSP.Windows.tukey(length(filterSCG), 0.4))),writeheader=true)
+CSV.write("FilteredWaveformDeg.csv", DataFrame(time = reverse(degen[:, 1]), field = reverse((filterDeg./maximum(abs.(filterDeg))).*DSP.Windows.tukey(length(filterDeg), 0.4))),writeheader=true)
