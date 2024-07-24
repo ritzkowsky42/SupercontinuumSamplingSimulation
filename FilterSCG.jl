@@ -62,16 +62,17 @@ fig2, ax2 = subplots(1, 1, figsize=(12, 8))
 # ax2.plot(freqsSCG[1:Int(length(freqsSCG) / 2)], abs.(spectrumSCG[1:Int(length(freqsSCG) / 2)]))
 # ax2.plot(freqDeg[1:Int(length(freqDeg) / 2)], abs.(spectrumDegenerate[1:Int(length(freqDeg) / 2)]))
 
-ax2.semilogy(freqsSCG, abs.(spectrumSCG).^2)
-ax2.semilogy(freqsSCG, window.*abs.(spectrumSCG).^2,color="red" )
+ax2.semilogy(freqsSCG, abs.(spectrumSCG).^2,label="Measurement")
+ax2.semilogy(freqsSCG, window.*abs.(spectrumSCG).^2,color="red",label="Filtered" )
 
 #ax2.semilogy(freqDeg, abs.(spectrumDegenerate).^2)
- ax2.set_xlim([0, 8])
+ ax2.set_xlim([0.1, 0.3])
 ax2.set_xlabel("Frequency (PHz)")
 ax2.set_ylabel("Spectr. Intensity (arb.u.)")
 ax2.set_title("Spectrum Plot")
+ax2.legend()
 
-fig2.savefig("WaveformSpectrum.png", dpi=800)
+fig2.savefig("WaveformSpectrumSCG.png", dpi=800)
 show()
 
 # filter the spectrum and backconvert to time domain

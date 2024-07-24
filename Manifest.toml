@@ -292,7 +292,7 @@ version = "0.9.32"
 
 [[deps.Keldysh]]
 deps = ["FFTW", "LinearAlgebra", "Parameters", "ProgressBars", "QuadGK", "Revise", "SparseArrays"]
-git-tree-sha1 = "25e6c6b1ff4500ad43a991c64c8a4c26d6255050"
+git-tree-sha1 = "0a602e3e02ff67fbbe711caa67536d7ec164a9a9"
 repo-rev = "main"
 repo-url = "../Keldysh.jl"
 uuid = "35ae2ed1-d925-45ac-9888-8ad0bb043484"

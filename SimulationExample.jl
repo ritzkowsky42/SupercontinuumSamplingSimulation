@@ -10,13 +10,16 @@ rcParams["font.size"] = 12
 using Colors
 
 using BenchmarkTools
-include("TDSEfcn.jl")
-
-
+using Keldysh
+using CSV
+using DataFrames
+using FFTW
+using DSP
+using Interpolations
 # Simulation Parameters
 
-N = 2000 # Number of points in spatial domain
-num_steps = 10000 # Number of time steps
+N = 500 # Number of points in spatial domain
+num_steps = 50000 # Number of time steps
 
 
 # Define spatial and time domains
@@ -27,7 +30,7 @@ xEnd = x[end]
 
 Δx = x[2] - x[1] # Spatial step size
 
-t= collect(LinRange(-50/t0,50/t0,num_steps)) # Time domain (not used
+t= collect(LinRange(-150/t0,150/t0,num_steps)) # Time domain (not used
 
 Δt = t[2]-t[1] # Time step size
 
@@ -48,7 +51,7 @@ V_max = -100 # adjust this value as needed
 
 # Put into a struct
 
-pot1 = PotentialParams(E_fermi = E_fermi, a = a, cB = cB, Wf = Wf, Bias_field = Bias_field, d_abl = d_abl, V_max = V_max, Type="step", ROC = 15/x0, FE = 15)
+pot1 = PotentialParams(E_fermi = E_fermi, a = a, cB = cB, Wf = Wf, Bias_field = Bias_field, d_abl = d_abl, V_max = V_max , Type = "step", ROC = 15/x0, FE = 15)
 
 
 
@@ -62,19 +65,42 @@ yc = 2060 / x0 # central wavelength in nm
 phi_ce = 0#π # carrier envelope phase in radians
 F = 15 # Field strength in V/nm
 
-pulse1 = pulseParams(fwhm = fwhm, yc = yc, phi_ce = phi_ce, F = 1)
-pulse2 = pulseParams(fwhm = fwhm, yc = yc/2, phi_ce = phi_ce, F = 0)
+# pulse1 = pulseParams(fwhm = fwhm, yc = yc, phi_ce = phi_ce, F = 1)
+# pulse2 = pulseParams(fwhm = fwhm, yc = yc/2, phi_ce = phi_ce, F = 0)
 
-field1 = pulsefromStruct(t, pulse1)
-field2 = pulsefromStruct(t, pulse2)
+# #field1 = pulsefromStruct(t, pulse1)
+# field2 = pulsefromStruct(t, pulse2)
 
-w2w = addPulse(field1, field2)
+# w2w = addPulse(field1, field2)
 
-plot(t*t0,w2w.E)
-show()
+# plot(t*t0,w2w.E)
+# show()
 #V = zeros(Complex{Float64},num_steps, N)
 
-Vosc = genCoulombPotentialfromStruct(pot1,field1, x, num_steps, N)
+
+pump = CSV.read("FilteredWaveformDeg.csv", DataFrame,types=Complex{Float64})
+
+interpPump = extrapolate(interpolate((real.(pump[:,1]),),real.(pump[:,2]), Gridded(Linear())),0 )
+
+signal = CSV.read("FilteredWaveformSCG.csv", DataFrame,types=Complex{Float64})
+
+interpSignal = extrapolate(interpolate((real.(signal[:,1]),),real.(signal[:,2]), Gridded(Linear())),0 ) 
+
+
+
+
+
+tukeyWindow = DSP.Windows.tukey(length(t), 0.3)
+
+tempField = tukeyWindow.*(interpPump(t*t0) + 0.01 .*interpSignal(t*t0 .+0))
+
+plot(t*t0,tempField)
+plot(t*t0,tukeyWindow)
+show()
+
+field1 = opticalField(tempField,abs.(tempField),0,1)
+
+Vosc = genPotential(pot1,field1, x, num_steps, N)
 
 
 
@@ -115,11 +141,11 @@ jxr = currentSingle(x,ψ_stored,xr)
 
 
 
-skipSteps = 10
+skipSteps = 50
 
 fig1,(ax1,ax2) = subplots(1,2,figsize=(16*cm,8*cm),sharex=true)
 
-pcm = ax1.pcolormesh(t[1:skipSteps:end]*t0,x*x0,abs2.(ψ_stored[end:-skipSteps:1,:])',cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-4, vmax=1e-4), shading="auto")
+pcm = ax1.pcolormesh(t[1:skipSteps:end]*t0,x*x0,abs2.(ψ_stored[end:-skipSteps:1,:])',cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-5, vmax=1e-5), shading="auto")
 
 fig1.colorbar(pcm, ax=ax1, extend="max")
 
@@ -127,7 +153,7 @@ ax1.set_ylabel("Position in (nm)")
 ax1.set_xlabel("Time in (fs)")
 ax1.set_title("Probability Density")
 ax1.set_ylim([0,5])
-ax1.set_xlim([-20,20])
+ax1.set_xlim([-150,150])
 ax1.invert_xaxis()
 
 
@@ -137,7 +163,7 @@ ax2.set_ylabel("Position in (nm)")
 ax2.set_xlabel("Time in (fs)")
 ax2.set_title("Probability Current")
 ax2.set_ylim([0,5])
-ax2.set_xlim([-20,20])
+ax2.set_xlim([-150,150])
 ax2.invert_xaxis()
 
 fig1.colorbar(pcm2, ax=ax2, extend="max")
@@ -159,7 +185,7 @@ ax3.set_title("Instantaneous Current at x = $(xr*x0) nm")
 
 ax4 = ax3.twinx()
 
-ax4.plot(t*t0,w2w.E,color="red")
+ax4.plot(t*t0,field1.E,color="red")
 ax4.set_ylim([-1,1])
 
 fig2.savefig("InstantaneousCurrent.png",dpi=600)

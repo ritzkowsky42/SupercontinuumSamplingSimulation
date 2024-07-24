@@ -49,10 +49,10 @@ t= collect(LinRange(-150/t0,150/t0,num_steps)) # Time domain (not used
 # Define Step Potential 
 
 
-E_fermi = 0.05 # incident energy Fermi level
+E_fermi = 5 # incident energy Fermi level
 a = 15/x0 # barrier width in x0
 cB = 1 # half width of barrier bottom smoothed Region
-Wf = 13 # work function in eV
+Wf = 5.1 # work function in eV
 Bias_field = 0 # bias field in V/nm
 
 # Define the width and strength of the absorbing layer
@@ -124,14 +124,14 @@ interpSignal = extrapolate(interpolate((real.(signal[:,1]),),real.(signal[:,2]),
 
 fieldList = []
 
-tukeyWindow = DSP.Windows.tukey(length(t), 0.2)
+tukeyWindow = DSP.Windows.tukey(length(t), 0.3)
 
 plot(t*t0,tukeyWindow.*interpPump(t*t0))
 show()
 
 
 for (i,val) in enumerate(delayVals)
-    tempField = tukeyWindow.*(interpPump(t*t0) - 0.01.*interpSignal(t*t0 .-val*t0))
+    tempField = tukeyWindow.*(interpPump(t*t0) + 0.01.*interpSignal(t*t0 .-val*t0))
     push!(fieldList,opticalField(tempField,abs.(tempField),0,1))
 end
 
@@ -141,7 +141,7 @@ end
 @time jCEP = pulseSweep(u0,pot1,fieldList,E_fermi,5/x0,x,Δx,Δt,N,num_steps)
 
 
-plot(t*t0,(jCEP[:,250]))
+plot(t*t0,(jCEP[:,800]))
 show()
 
 
