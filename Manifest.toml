@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "d060762dff3ebcecccfa11f57130a243ae9f3e97"
+project_hash = "59b38d395904c50f5e73092ba0cacbbbfc378893"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -289,14 +289,6 @@ deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 git-tree-sha1 = "a6adc2dcfe4187c40dc7c2c9d2128e326360e90a"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
 version = "0.9.32"
-
-[[deps.Keldysh]]
-deps = ["FFTW", "LinearAlgebra", "Parameters", "ProgressBars", "QuadGK", "Revise", "SparseArrays"]
-git-tree-sha1 = "0a602e3e02ff67fbbe711caa67536d7ec164a9a9"
-repo-rev = "main"
-repo-url = "../Keldysh.jl"
-uuid = "35ae2ed1-d925-45ac-9888-8ad0bb043484"
-version = "1.0.0-DEV"
 
 [[deps.LaTeXStrings]]
 git-tree-sha1 = "50901ebc375ed41dbf8058da26f9de442febbbec"
