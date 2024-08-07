@@ -61,7 +61,7 @@ V_max = -100 # adjust this value as needed
 
 # Put into a struct
 
-pot1 = PotentialParams(E_fermi = E_fermi, a = a, cB = cB, Wf = Wf, Bias_field = Bias_field, d_abl = d_abl, V_max = V_max,Type="step", ROC = 15/x0, FE = 40)
+pot1 = PotentialParams(E_fermi = E_fermi, a = a, cB = cB, Wf = Wf, Bias_field = Bias_field, d_abl = d_abl, V_max = V_max,Type="step", ROC = 15/x0, FE = 15)
 
 
 
@@ -98,9 +98,14 @@ interpPump = extrapolate(interpolate((real.(pump[:,1]),),real.(pump[:,2]), Gridd
 
 
 
-signal = CSV.read("FilteredWaveformSCG.csv", DataFrame,types=Complex{Float64})
+signal = CSV.read("FilteredWaveformSCG0415.csv", DataFrame)
 
-interpSignal = extrapolate(interpolate((real.(signal[:,1]),),real.(signal[:,2]), Gridded(Linear())),0 ) 
+plot(real.(signal[:,1]),signal[:,2])
+plot(reverse(real.(signal[:,1])),reverse(signal[:,2]).+2)
+show()
+
+
+interpSignal = extrapolate(interpolate((reverse(real.(signal[:,1])),),reverse(real.(signal[:,2])), Gridded(Linear())),0 ) 
 
 
 # pulsePump = pulseParams(fwhm = 15/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 10)
@@ -186,7 +191,7 @@ qAvg = -(q[:,1] .- mean(q[1:20,1]))
 
 qAll = -(q[:,2:end] .- mean(q[1:20,2:end],dims=1))
 
-CSV.write("SampledWaveform40Vnm.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg)), writeheader = true)
+CSV.write("SampledWaveform15Vnm0415.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg)), writeheader = true)
 
 
 
