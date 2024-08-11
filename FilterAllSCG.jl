@@ -84,8 +84,8 @@ freqsSCG0329 = fftfreq(length(spectrumSCG0329), 1 / (scg20230329Time[2] - scg202
 
 
 # Define Window Function with respect to specific frequencies
-freqStart = -0.12
-freqStop = -0.27
+freqStop = -0.12
+freqStart = -0.27
 
 # Find closest index of the frequency
 indexStop0403 = argmin(abs.(freqsSCG0403 .- freqStart))
@@ -128,34 +128,83 @@ ax2.semilogy(freqsSCG0403, window0403.*abs.(spectrumSCG0403).^2,color="red",labe
  ax2.set_xlim([-0.1, -0.3])
 ax2.set_xlabel("Frequency (PHz)")
 ax2.set_ylabel("Spectr. Intensity (arb.u.)")
-ax2.set_title("Spectrum Plot")
+ax2.set_title("Spectrum Plot - SCG 20230403")
 ax2.legend()
 
-fig2.savefig("WaveformSpectrumSCG.png", dpi=800)
+fig2.savefig("WaveformSpectrumSCG0403.png", dpi=800)
 show()
+
+
+
+# Creating the figure and axes
+fig2, ax2 = subplots(1, 1, figsize=(12, 8))
+
+# ax2.plot(freqsSCG[1:Int(length(freqsSCG) / 2)], abs.(spectrumSCG[1:Int(length(freqsSCG) / 2)]))
+# ax2.plot(freqDeg[1:Int(length(freqDeg) / 2)], abs.(spectrumDegenerate[1:Int(length(freqDeg) / 2)]))
+
+ax2.semilogy(freqsSCG0415, abs.(spectrumSCG0415).^2,label="Measurement")
+ax2.semilogy(freqsSCG0415, window0415.*abs.(spectrumSCG0415).^2,color="red",label="Filtered" )
+
+#ax2.semilogy(freqDeg, abs.(spectrumDegenerate).^2)
+ ax2.set_xlim([-0.1, -0.3])
+ax2.set_xlabel("Frequency (PHz)")
+ax2.set_ylabel("Spectr. Intensity (arb.u.)")
+ax2.set_title("Spectrum Plot - SCG 20230415")
+ax2.legend()
+
+fig2.savefig("WaveformSpectrumSCG0415.png", dpi=800)
+show()
+
+# Creating the figure and axes
+fig2, ax2 = subplots(1, 1, figsize=(12, 8))
+
+# ax2.plot(freqsSCG[1:Int(length(freqsSCG) / 2)], abs.(spectrumSCG[1:Int(length(freqsSCG) / 2)]))
+# ax2.plot(freqDeg[1:Int(length(freqDeg) / 2)], abs.(spectrumDegenerate[1:Int(length(freqDeg) / 2)]))
+
+ax2.semilogy(freqsSCG0329, abs.(spectrumSCG0329).^2,label="Measurement")
+ax2.semilogy(freqsSCG0329, window0329.*abs.(spectrumSCG0329).^2,color="red",label="Filtered" )
+
+#ax2.semilogy(freqDeg, abs.(spectrumDegenerate).^2)
+ ax2.set_xlim([-0.1, -0.3])
+ax2.set_xlabel("Frequency (PHz)")
+ax2.set_ylabel("Spectr. Intensity (arb.u.)")
+ax2.set_title("Spectrum Plot - SCG 20230329")
+ax2.legend()
+
+fig2.savefig("WaveformSpectrumSCG0329.png", dpi=800)
+show()
+
 
 
 
 # filter the spectrum and backconvert to time domain
 
-filteredSpectrumSCG = spectrumSCG .* window.*2
-filterSCG = ifft(filteredSpectrumSCG)
+filterSC0403 = ifft(window0403.*spectrumSCG0403)
+filterSC0415 = ifft(window0415.*spectrumSCG0415)
+filterSC0329 = ifft(window0329.*spectrumSCG0329)
 
-scg[:,1] .-= scg[findmax(abs.(filterSCG))[2],1]
+scg20230403Time .-= scg20230403Time[findmax(abs.(filterSC0403))[2]]
+scg20230415Time .-= scg20230415Time[findmax(abs.(filterSC0415))[2]]
+scg20230329Time .-= scg20230329Time[findmax(abs.(filterSC0329))[2]]
+
 
 
 # Creating the figure and axes
 
 fig3, ax3 = subplots(1, 1, figsize=(12, 8))
-ax3.plot(scg[:, 1], scg[:, 2])
-ax3.plot(scg[:, 1], filterSCG)
-ax3.plot(scg[:, 1], filterSCG.*DSP.Windows.tukey(length(filterSCG), 0.4))
+ax3.plot(scg20230403Time, real.(filterSC0403), label="20230403")
+ax3.plot(scg20230415Time, real.(filterSC0415).+2, label="20230415")
+ax3.plot(scg20230329Time, real.(filterSC0329).+4, label="20230329")
+
 ax3.set_xlabel("Time (fs)")
 ax3.set_ylabel("Field (arb.u.)")
 ax3.set_title("Filtered Waveform Plot")
-
+ax3.legend()
 
 fig3.savefig("FilteredWaveformSCG.png", dpi=800)
 show()
 
-CSV.write("FilteredWaveformSCG.csv", DataFrame(time = reverse(scg[:, 1]), field = reverse((filterSCG./maximum(abs.(filterSCG))).*DSP.Windows.tukey(length(filterSCG), 0.4))),writeheader=true)
+
+CSV.write("FilteredWaveformSCG0403.csv", DataFrame(time = scg20230403Time, field = real.(filterSC0403),writeheader=true))
+CSV.write("FilteredWaveformSCG0415.csv", DataFrame(time = scg20230415Time, field = real.(filterSC0415),writeheader=true))
+CSV.write("FilteredWaveformSCG0329.csv", DataFrame(time = scg20230329Time, field = real.(filterSC0329),writeheader=true))
