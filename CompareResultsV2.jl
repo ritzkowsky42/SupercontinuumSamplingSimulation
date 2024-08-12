@@ -38,9 +38,13 @@ SCG0415 = CSV.read("FilteredWaveformSCG0415.csv",DataFrame)
 
 
 tdseTime = TDSE0329[:,1] .-100 
-tdseField = reverse(TDSE0329[:,2])./maximum(abs.(TDSE0329[:,2]))
-tdseField2 = reverse(TDSE0403[:,2])./maximum(abs.(TDSE0403[:,2]))
-tdseField3 = reverse(TDSE0415[:,2])./maximum(abs.(TDSE0415[:,2]))
+# tdseField = reverse(TDSE0329[:,2])./maximum(abs.(TDSE0329[:,2]))
+# tdseField2 = reverse(TDSE0403[:,2])./maximum(abs.(TDSE0403[:,2]))
+# tdseField3 = reverse(TDSE0415[:,2])./maximum(abs.(TDSE0415[:,2]))
+
+tdseField = (TDSE0329[:,2])./maximum(abs.(TDSE0329[:,2]))
+tdseField2 = (TDSE0403[:,2])./maximum(abs.(TDSE0403[:,2]))
+tdseField3 = (TDSE0415[:,2])./maximum(abs.(TDSE0415[:,2]))
 
 refField = (ReferenceResult[:,2]./maximum(abs.(ReferenceResult[:,2])))
 
@@ -120,6 +124,7 @@ ax.plot(meas3Time.+339,real.(meas3Cmplx)./maximum(abs.(meas3Cmplx)).+4,label="20
 ax.legend()
 ax.set_xlabel("Time (fs)")
 ax.set_ylabel("Field (arb.u.)")
+ax.set_xlim([-400,400])
 fig.savefig("DifferentMeasurements.png",dpi=600)
 show()
 
@@ -172,7 +177,7 @@ ax.plot(delayVals,analyticalCurrent0329.-6,label="Analytical - 20230329")
 #ax.plot(ReferenceResult[:, 1], refField.+10,label="Reference",color="black")
 ax.set_xlabel("Time (fs)")
 ax.set_ylabel("Field (arb.u.)")
-ax.set_xlim([-300,300])
+ax.set_xlim([-500,500])
 ax.legend()
 fig.savefig("TDSEvsMeasurement.png",dpi=600)
 show()
