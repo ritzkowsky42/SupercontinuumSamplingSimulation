@@ -89,7 +89,7 @@ u0 = statSolve(x, Vosc[1,:], E_fermi)
 delaySteps = 1400
 
 
-delayVals = collect(LinRange(-300/t0 , 400/t0, delaySteps))
+delayVals = collect(LinRange(-450/t0 , -300/t0, delaySteps))
 
 
 pump = CSV.read("FilteredWaveformDeg.csv", DataFrame,types=Complex{Float64})
@@ -191,7 +191,7 @@ qAvg = -(q[:,1] .- mean(q[1:20,1]))
 
 qAll = -(q[:,2:end] .- mean(q[1:20,2:end],dims=1))
 
-CSV.write("SampledWaveform15Vnm0403.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg)), writeheader = true)
+CSV.write("SampledWaveform15Vnm0403Extension.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg)), writeheader = true)
 
 
 
