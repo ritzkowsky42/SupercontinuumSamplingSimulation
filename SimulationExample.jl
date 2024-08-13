@@ -5,7 +5,9 @@ const cm = 1/2.54
 
 
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-rcParams["font.size"] = 12
+rcParams["font.size"] = 8
+rcParams["pdf.fonttype"] = 42
+
 
 using Colors
 
@@ -18,8 +20,8 @@ using DSP
 using Interpolations
 # Simulation Parameters
 
-N = 500 # Number of points in spatial domain
-num_steps = 50000 # Number of time steps
+N = 2000 # Number of points in spatial domain
+num_steps = 200000 # Number of time steps
 
 
 # Define spatial and time domains
@@ -30,7 +32,7 @@ xEnd = x[end]
 
 Δx = x[2] - x[1] # Spatial step size
 
-t= collect(LinRange(-150/t0,150/t0,num_steps)) # Time domain (not used
+t= collect(LinRange(-300/t0,300/t0,num_steps)) # Time domain (not used
 
 Δt = t[2]-t[1] # Time step size
 
@@ -82,9 +84,9 @@ pump = CSV.read("FilteredWaveformDeg.csv", DataFrame,types=Complex{Float64})
 
 interpPump = extrapolate(interpolate((real.(pump[:,1]),),real.(pump[:,2]), Gridded(Linear())),0 )
 
-signal = CSV.read("FilteredWaveformSCG.csv", DataFrame,types=Complex{Float64})
+signal = CSV.read("FilteredWaveformSCG0403.csv", DataFrame)
 
-interpSignal = extrapolate(interpolate((real.(signal[:,1]),),real.(signal[:,2]), Gridded(Linear())),0 ) 
+interpSignal = extrapolate(interpolate((reverse(real.(signal[:,1])),),reverse(real.(signal[:,2])), Gridded(Linear())),0 ) 
 
 
 
@@ -92,21 +94,37 @@ interpSignal = extrapolate(interpolate((real.(signal[:,1]),),real.(signal[:,2]),
 
 tukeyWindow = DSP.Windows.tukey(length(t), 0.3)
 
-tempField = tukeyWindow.*(interpPump(t*t0) + 0.01 .*interpSignal(t*t0 .+0))
+tempField = tukeyWindow.*(interpPump(t*t0))
+tempField = DSP.Util.hilbert(tempField)
+tempField .*= exp(-1im*0*pi)
+
+tempField2 = tukeyWindow.*(interpSignal(t*t0))
+tempField2 = DSP.Util.hilbert(tempField2)
+tempField2 .*= 1 ./maximum(abs.(tempField2))
+tempField2 .*= exp(-1im*0.5*pi)
+
 
 plot(t*t0,tempField)
+plot(t*t0,-tempField2.+2)
 plot(t*t0,tukeyWindow)
 show()
 
-field1 = opticalField(tempField,abs.(tempField),0,1)
+field1 = opticalField(-real.(tempField),abs.(tempField),0,1)
 
 Vosc = genPotential(pot1,field1, x, num_steps, N)
+
+
+
+field2 = opticalField(-real.(tempField2),abs.(tempField2),0,1)
+
+Vosc2 = genPotential(pot1,field2, x, num_steps, N)
 
 
 
 
 
 u0 = statSolve(x, Vosc[1,:], E_fermi)
+u0 = statSolve(x, Vosc2[1,:], E_fermi)
 
 
 
@@ -127,66 +145,100 @@ show()
 
 # Solve the TDSE
 ψ_stored = zeros(Complex{Float64},num_steps, N)
+ψ_stored2 = zeros(Complex{Float64},num_steps, N)
 
 @time runSimulation2!(u0,ψ_stored,E_fermi, Vosc, Δx, Δt, N, num_steps)
+@time runSimulation2!(u0,ψ_stored2,E_fermi, Vosc2, Δx, Δt, N, num_steps)
 
 # Calculate the current
 j = current(x,ψ_stored)
-jxr = currentSingle(x,ψ_stored,xr)
+jxr = currentSingle(x,ψ_stored,2/x0)
+
+j2 = current(x,ψ_stored2)
+jxr2 = currentSingle(x,ψ_stored2,2/x0)
+
+
+
+
 # Plot the results
-
-# Here i add a two row Makie plot showing the probability density and the current j in a heatmap.
-
-
-
-
 
 skipSteps = 50
 
-fig1,(ax1,ax2) = subplots(1,2,figsize=(16*cm,8*cm),sharex=true)
+fig1,(ax1,ax3,ax2,ax4) = subplots(2,2,figsize=(16*cm,8*cm),sharex=true)
 
-pcm = ax1.pcolormesh(t[1:skipSteps:end]*t0,x*x0,abs2.(ψ_stored[end:-skipSteps:1,:])',cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-5, vmax=1e-5), shading="auto")
+pcm = ax1.pcolormesh(t[1:skipSteps:end]*t0,x*x0,abs2.(ψ_stored[end:-skipSteps:1,:])',cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-2, vmax=1e-2), shading="auto",rasterized=true)
 
-fig1.colorbar(pcm, ax=ax1, extend="max")
+fig1.colorbar(pcm, ax=ax1, extend="max", label= "\$|\\psi(x,t)|^2\$")
 
 ax1.set_ylabel("Position in (nm)")
-ax1.set_xlabel("Time in (fs)")
+# ax1.set_xlabel("Time in (fs)")
 ax1.set_title("Probability Density")
 ax1.set_ylim([0,5])
-ax1.set_xlim([-150,150])
+ax1.set_xlim([-50,50])
 ax1.invert_xaxis()
 
 
 
-pcm2 = ax2.pcolormesh(t[1:skipSteps:end]*t0,x*x0,real(j[end:-skipSteps:1,:])',cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-4, vmax=1e-4))
-ax2.set_ylabel("Position in (nm)")
-ax2.set_xlabel("Time in (fs)")
+pcm2 = ax2.pcolormesh(t[1:skipSteps:end]*t0,x*x0,real(j[end:-skipSteps:1,:])',cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-5e-2, vmax=5e-2),rasterized=true)
+# ax2.set_ylabel("Position in (nm)")
+# ax2.set_xlabel("Time in (fs)")
 ax2.set_title("Probability Current")
 ax2.set_ylim([0,5])
-ax2.set_xlim([-150,150])
+ax2.set_xlim([-50,50])
 ax2.invert_xaxis()
+fig1.colorbar(pcm2, ax=ax2, extend="max",label="Current density")
 
-fig1.colorbar(pcm2, ax=ax2, extend="max")
+
+pcm3 = ax3.pcolormesh(t[1:skipSteps:end]*t0,x*x0,abs2.(ψ_stored2[end:-skipSteps:1,:])',cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-2, vmax=1e-2), shading="auto",rasterized=true)
+
+ax3.set_ylabel("Position in (nm)")
+ax3.set_xlabel("Time in (fs)")
+# ax3.set_title("Probability Density")
+ax3.set_ylim([0,5])
+ax3.set_xlim([-50,50])
+ax3.invert_xaxis()
+
+fig1.colorbar(pcm3, ax=ax3, extend="max", label= "\$|\\psi(x,t)|^2\$")
+
+
+
+pcm4 = ax4.pcolormesh(t[1:skipSteps:end]*t0,x*x0,real(j2[end:-skipSteps:1,:])',cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-5e-2, vmax=5e-2),rasterized=true)
+# ax4.set_ylabel("Position in (nm)")
+ax4.set_xlabel("Time in (fs)")
+# ax4.set_title("Probability Current")
+ax4.set_ylim([0,5])
+ax4.set_xlim([-50,50])
+ax4.invert_xaxis()
+
+fig1.colorbar(pcm4, ax=ax4, extend="max",label="Current density")
 
 
 fig1.tight_layout(pad=0.2)
+fig1.savefig("ProbabilityDensityCurrent.png",dpi=600)
+fig1.savefig("ProbabilityDensityCurrent.pdf",dpi=600)
 show()
 
 
 
-fig2,ax3 = subplots(1,1,figsize=(16*cm,12*cm),sharex=true)
+fig2,ax3 = subplots(1,1,figsize=(16*cm,6*cm),sharex=true)
 
-ax3.plot(t*t0,jxr )
+ax3.plot(t*t0,jxr./maximum(abs.(jxr)) ,label = "Long Pulse")
+ax3.plot(t*t0,jxr2 ./maximum(abs.(jxr2)),label = "Short Pulse")
 ax3.set_xlabel("Time in (fs)")
 ax3.set_ylabel("Current in (arb.u.)")
-ax3.set_ylim([-1e-3,1e-3])
-#ax2.set_xlim([4,15])}
-ax3.set_title("Instantaneous Current at x = $(xr*x0) nm")
-
+ax3.set_ylim([-1.1,1.1])
+ax3.set_xlim([-70,70])
+ax3.set_title("Instantaneous Current at x = $(2) nm")
 ax4 = ax3.twinx()
 
-ax4.plot(t*t0,field1.E,color="red")
+ax4.plot(t*t0,field1.E,color="k",alpha=0.5,label="Long Pulse")
+ax4.plot(t*t0,field2.E,color="k",alpha=0.5,linestyle="--",label="Short Pulse")
 ax4.set_ylim([-1,1])
+ax4.set_ylabel("Field in (arb.u.)")
+ax3.legend()
+ax4.legend(loc="lower right")
 
+fig2.tight_layout(pad=0.2)
 fig2.savefig("InstantaneousCurrent.png",dpi=600)
+fig2.savefig("InstantaneousCurrent.pdf",dpi=600)
 show()
