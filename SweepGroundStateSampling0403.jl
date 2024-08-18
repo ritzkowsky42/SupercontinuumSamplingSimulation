@@ -89,7 +89,7 @@ u0 = statSolve(x, Vosc[1,:], E_fermi)
 delaySteps = 1400
 
 
-delayVals = collect(LinRange(-450/t0 , -300/t0, delaySteps))
+delayVals = collect(LinRange(-450/t0 , -300/t0, 300))
 
 
 pump = CSV.read("FilteredWaveformDeg.csv", DataFrame,types=Complex{Float64})
