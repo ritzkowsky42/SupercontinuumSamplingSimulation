@@ -24,8 +24,8 @@ PumpPulse = CSV.read("Waveforms/Degenerate1690.csv", DataFrame,types=Complex{Flo
 PumpFiltered = CSV.read("FilteredWaveformDeg.csv", DataFrame,types=Complex{Float64})
 
 TDSE0329 = CSV.read("SampledWaveform15Vnm0329.csv", DataFrame)
-TDSE0403 = CSV.read("SampledWaveform15Vnm0403.csv", DataFrame)
-TDSE0415 = CSV.read("SampledWaveform15Vnm0415.csv", DataFrame)
+TDSE0403 = CSV.read("SampledWaveform15Vnm0403Extension.csv", DataFrame)
+TDSE0415 = CSV.read("SampledWaveform15Vnm0415Extension.csv", DataFrame)
 
 
 # loading reference Waveforms
@@ -38,13 +38,17 @@ SCG0415 = CSV.read("FilteredWaveformSCG0415.csv",DataFrame)
 
 
 tdseTime = TDSE0329[:,1] .-100 
-# tdseField = reverse(TDSE0329[:,2])./maximum(abs.(TDSE0329[:,2]))
-# tdseField2 = reverse(TDSE0403[:,2])./maximum(abs.(TDSE0403[:,2]))
-# tdseField3 = reverse(TDSE0415[:,2])./maximum(abs.(TDSE0415[:,2]))
+tdseTime2 = TDSE0403[:,1] .-100
+tdseTime3 = TDSE0415[:,1] .-100
 
-tdseField = (TDSE0329[:,2])./maximum(abs.(TDSE0329[:,2]))
-tdseField2 = (TDSE0403[:,2])./maximum(abs.(TDSE0403[:,2]))
-tdseField3 = (TDSE0415[:,2])./maximum(abs.(TDSE0415[:,2]))
+
+tdseField = reverse(TDSE0329[:,2])./maximum(abs.(TDSE0329[:,2]))
+tdseField2 = reverse(TDSE0403[:,2])./maximum(abs.(TDSE0403[:,2]))
+tdseField3 = reverse(TDSE0415[:,2])./maximum(abs.(TDSE0415[:,2]))
+
+# tdseField = (TDSE0329[:,2])./maximum(abs.(TDSE0329[:,2]))
+# tdseField2 = (TDSE0403[:,2])./maximum(abs.(TDSE0403[:,2]))
+# tdseField3 = (TDSE0415[:,2])./maximum(abs.(TDSE0415[:,2]))
 
 refField = (ReferenceResult[:,2]./maximum(abs.(ReferenceResult[:,2])))
 
@@ -147,22 +151,22 @@ println(secondOrderMoment(meas1Time,real.(meas1Cmplx)))
 println(secondOrderMoment(tdseTime,tdseField3))
 println("---------------------------------")
 println(secondOrderMoment(meas2Time,real.(meas2Cmplx)))
-println(secondOrderMoment(tdseTime,tdseField2))
+println(secondOrderMoment(tdseTime2,tdseField2))
 println("---------------------------------")
 
 println(secondOrderMoment(meas3Time,real.(meas3Cmplx)))
-println(secondOrderMoment(tdseTime,tdseField))
+println(secondOrderMoment(tdseTime3,tdseField))
 
 
 fig, ax = subplots(1, 1, figsize=(16, 8))  # Größe in Zoll
 
 #ax.plot(MeasurementResult[:, 1], MeasurementResult[:, 2].+2,label="Measurement")
 ax.plot(meas1Time,real.(meas1Cmplx)./maximum(abs.(meas1Cmplx)).+10,label="Measurement - 20230415")
-ax.plot(tdseTime, (tdseField3).+8,label="TDSE, 15 V/nm - 20230415")
+ax.plot(tdseTime3, (tdseField3).+8,label="TDSE, 15 V/nm - 20230415")
 ax.plot(delayVals,analyticalCurrent0415.+6,label="Analytical - 20230415")
 ax.hlines(5,-400,400,linestyle="--",color="black")
 ax.plot(meas2Time.+304.5,real.(meas2Cmplx)./maximum(abs.(meas2Cmplx)).+4,label="Measurement - 20230403")
-ax.plot(tdseTime, (tdseField2).+2,label="TDSE, 15 V/nm - 20230403")
+ax.plot(tdseTime2, (tdseField2).+2,label="TDSE, 15 V/nm - 20230403")
 ax.plot(delayVals,analyticalCurrent0403.+0,label="Analytical - 20230403")
 
 ax.hlines(-1,-400,400,linestyle="--",color="black")
@@ -183,7 +187,7 @@ fig.savefig("TDSEvsMeasurement.png",dpi=600)
 show()
 
 ## Putting all traces into a MATLAB file
-matwrite("Waveforms/AllTraces.mat", Dict("TDSEtime" => tdseTime, "TDSE15Vnm20230415" => tdseField3,"TDSE15Vnm20230403" => tdseField2,"TDSE15Vnm20230329" => tdseField,"AnalyticalTime"=>delayVals,"Analytical20230415" => analyticalCurrent0415,"Analytical20230403" => analyticalCurrent0403,"Analytical20230329" => analyticalCurrent0329,"Meas20230415" => meas1Cmplx,"Meas20230403" => meas2Cmplx,"Meas20230329" => meas3Cmplx))
+matwrite("Waveforms/AllTraces.mat", Dict("TDSEtime20230329" => tdseTime,"TDSETime20230415"=> tdseTime3, "TDSETime20230403"=> tdseTime2,"TDSE15Vnm20230415" => tdseField3,"TDSE15Vnm20230403" => tdseField2,"TDSE15Vnm20230329" => tdseField,"AnalyticalTime"=>delayVals,"Analytical20230415" => analyticalCurrent0415,"Analytical20230403" => analyticalCurrent0403,"Analytical20230329" => analyticalCurrent0329,"Meas20230415" => meas1Cmplx,"Meas20230403" => meas2Cmplx,"Meas20230329" => meas3Cmplx))
 
 
 # # Converting time domain to Frequency domain
