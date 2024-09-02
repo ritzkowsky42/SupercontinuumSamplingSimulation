@@ -25,8 +25,8 @@ using JLD2
 
 # Simulation Parameters
 
-N = 500 # Number of points in spatial domain
-num_steps = 50000 # Number of time steps
+N = 2000 # Number of points in spatial domain
+num_steps = 100000 # Number of time steps
 
 k_B = 8.617e-5 # Boltzmann constant in eV/K
 
@@ -38,7 +38,7 @@ xEnd = x[end]
 
 Δx = x[2] - x[1] # Spatial step size
 
-t= collect(LinRange(-150/t0,150/t0,num_steps)) # Time domain (not used
+t= collect(LinRange(-300/t0,300/t0,num_steps)) # Time domain (not used
 
 Δt = t[2]-t[1] # Time step size
 
@@ -127,14 +127,16 @@ fieldList = []
 
 tukeyWindow = DSP.Windows.tukey(length(t), 0.3)
 
-plot(t*t0,tukeyWindow.*interpPump(t*t0))
-show()
+# plot(t*t0,tukeyWindow.*interpPump(t*t0))
+# show()
 
 
-for (i,val) in enumerate(delayVals)
-    tempField = tukeyWindow.*(interpPump(t*t0) + (1 ./sqrt(3300)).*interpSignal(t*t0 .-val*t0))
-    push!(fieldList,opticalField(tempField,abs.(tempField),0,1))
-end
+# for (i,val) in enumerate(delayVals)
+#     tempField = tukeyWindow.*(interpPump(t*t0) + (1 ./sqrt(3300)).*interpSignal(t*t0 .-val*t0))
+#     push!(fieldList,opticalField(tempField,abs.(tempField),0,1))
+# end
+
+field = opticalField(tukeyWindow.*(interpPump(t*t0)),abs.(tukeyWindow.*(interpPump(t*t0))),0,1)
 
 # print("Single Energy Calculation")
 
@@ -145,29 +147,24 @@ end
 
 # Define the ground state energies to be sampled
 
-nEnergy= 20
+nEnergy= 40
 
-E = collect(LinRange(2,6,nEnergy)) # Energy in eV
+E = collect(LinRange(1,6,nEnergy)) # Energy in eV
 T = 293.15 #293.15 # Room temperature in K
 
 
 
 n = length(fieldList)
-q = zeros(Float64,n,nEnergy+1)
+q = zeros(Float64,1)
 stepHeight = Wf + E_fermi
 
-a =[]
 
-for i in ProgressBar(1:n)
-    VoscTemp = genPotential(pot1,fieldList[i] ,x, num_steps, N)
-    jTemp = groundStateSweep(VoscTemp,E,xr,x,Δx,Δt,N,num_steps)
-    qOut = sum(jTemp.*Δt,dims=1)'
-    q[i,2:end] = qOut
-    q[i,1],Fout,DistOut = gs_integrated_charge(qOut,stepHeight.-E , E_fermi ,stepHeight,T)
-    VoscTemp = []
-    jTemp = []
-    push!(a,i*2)
-end
+VoscTemp = genPotential(pot1,field ,x, num_steps, N)
+jTemp = groundStateSweep(VoscTemp,E,xr,x,Δx,Δt,N,num_steps)
+qOut = sum(jTemp.*Δt,dims=1)'
+q,Fout,DistOut = gs_integrated_charge(qOut,stepHeight.-E , E_fermi ,stepHeight,T)
+VoscTemp = []
+
 
 
 # Plotting the results

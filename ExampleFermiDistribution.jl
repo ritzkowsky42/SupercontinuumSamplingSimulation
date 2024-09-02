@@ -4,19 +4,25 @@ PyPlot.matplotlib[:use]("TkAgg")
 const cm = 1/2.54
 
 
+using CSV
+using DataFrames
+using FFTW
+using Interpolations
+using DSP
+using JLD2
+
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.size"] = 12
 
 using Colors
 
 using BenchmarkTools
-include("TDSEfcn.jl")
-
+using Keldysh
 
 # Simulation Parameters
 
 N = 500 # Number of points in spatial domain
-num_steps = 5000 # Number of time steps
+num_steps = 50000 # Number of time steps
 
 k_B = 8.617e-5 # Boltzmann constant in eV/K
 
@@ -28,7 +34,7 @@ xEnd = x[end]
 
 Δx = x[2] - x[1] # Spatial step size
 
-t= collect(LinRange(-50/t0,50/t0,num_steps)) # Time domain (not used
+t= collect(LinRange(-300/t0,300/t0,num_steps)) # Time domain (not used
 
 Δt = t[2]-t[1] # Time step size
 
@@ -51,11 +57,11 @@ V_max = -100 # adjust this value as needed
 
 # Put into a struct
 
-pot1 = PotentialParams(E_fermi = E_fermi, a = a, cB = cB, Wf = Wf, Bias_field = Bias_field, d_abl = d_abl, V_max = V_max,Type="step", ROC = 10/x0, FE = 15)
+pot1 = PotentialParams(E_fermi = E_fermi, a = a, cB = cB, Wf = Wf, Bias_field = Bias_field, d_abl = d_abl, V_max = V_max,Type="step", ROC = 15/x0, FE = 15)
 
 
 
-xr = 5/x0 #  measurement reference plane in x0
+xr = 2/x0 #  measurement reference plane in x0
 
 
 # Define optical pulse
@@ -65,19 +71,72 @@ yc = 1000 / x0 # central wavelength in nm
 phi_ce = 0#π # carrier envelope phase in radians
 F = 1 # Field strength in V/nm
 
-pulse1 = pulseParams(fwhm = fwhm, yc = yc, phi_ce = phi_ce, F = F)
 
-field1 = pulsefromStruct(t, pulse1)
 
+pump = CSV.read("FilteredWaveformDeg.csv", DataFrame,types=Complex{Float64})
+
+interpPump = extrapolate(interpolate((real.(pump[:,1]),),real.(pump[:,2]), Gridded(Linear())),0 ) 
+
+
+
+signal = CSV.read("FilteredWaveformSCG0403.csv", DataFrame)
+
+complexSignal= DSP.Util.hilbert(real.(signal[:,2]))
+
+
+plot(real.(signal[:,1]),real(complexSignal.*exp(1im .*pi .* 1)))
+plot(real.(signal[:,1]),real(complexSignal.*exp(1im .*pi .* 0.5)))
+
+# plot(reverse(real.(signal[:,1])),reverse(signal[:,2]).+2)
+show()
+
+plot(t*t0,interpPump(t*t0))
+show()
+
+
+interpSignal = extrapolate(interpolate((reverse(real.(signal[:,1])),),reverse(real.(real(complexSignal.*exp(1im .*pi .* 0.5)))), Gridded(Linear())),0 ) 
+
+
+# pulsePump = pulseParams(fwhm = 15/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 10)
+
+# signalDuration = 8/t0
+
+# pumpPulseField = pulsefromStruct(t,pulsePump)
+
+# pulseList = []
+
+# ysignal = 1690/x0
+
+# for val in delayVals
+#     #push!(pulseList,tukeyPulse(t,1,val,0.5))
+#     push!(pulseList,pulsefromStruct(t,pulseParams(fwhm = signalDuration, t0=val, yc = ysignal, phi_ce = 0, F = 0.1)))
+# end
+
+fieldList = []
+
+tukeyWindow = DSP.Windows.tukey(length(t), 0.3)
+
+# plot(t*t0,tukeyWindow.*interpPump(t*t0))
+# show()
+
+
+# for (i,val) in enumerate(delayVals)
+#     tempField = tukeyWindow.*(interpPump(t*t0) + (1 ./sqrt(3300)).*interpSignal(t*t0 .-val*t0))
+#     push!(fieldList,opticalField(tempField,abs.(tempField),0,1))
+# end
+# tempField = tukeyWindow.*(interpPump(t*t0))
+tempField = tukeyWindow.*(interpSignal(t*t0))
+
+field = opticalField(-tempField,abs.(tempField),0,1)
 #V = zeros(Complex{Float64},num_steps, N)
 
-Vosc = genPotential(pot1,field1, x, num_steps, N)
+Vosc = genPotential(pot1,field, x, num_steps, N)
 
 
 # Define the ground state energies to be sampled
-nEnergy= 500
+nEnergy= 100
 
-E = collect(LinRange(0,8,nEnergy)) # Energy in eV
+E = collect(LinRange(0,6,nEnergy)) # Energy in eV
 T = 293.15 #293.15 # Room temperature in K
 
 function fermiDistribution(E::Float64, E_fermi::Float64, T::Float64)
@@ -124,9 +183,11 @@ show()
 # Solve the TDSE
 ψ_stored = zeros(Complex{Float64},num_steps, N)
 
+ψ_Out = zeros(Complex{Float64},num_steps, N, nEnergy)
+
 # running the ground state Sweep
 
-@time jSweep = groundStateSweep(Vosc,E,xr,Δx,Δt,N,num_steps)
+@time jSweep,ψ_Out = groundStateSweep(Vosc,E,xr,x,Δx,Δt,N,num_steps,true)
 
 totalCharge = sum(jSweep.*Δt,dims=1)'
 plot(E,totalCharge)
@@ -155,12 +216,64 @@ show()
 
 jTemp = jSweep .* (probabilityDensity)'
 
+ψ_Normalized = abs2.(ψ_Out) .* reshape(probabilityDensity, 1, 1, :)
+ψ_Normalized = sum(ψ_Normalized,dims=3)
+
+# calculating the currents for single energies
+
+jNorm =  zeros(Complex{Float64},num_steps, N, nEnergy)
+Threads.@threads for i in 1:nEnergy
+    jNorm[:,:,i] = current(x,ψ_Out[:,:,i])
+    print(i)
+end
+
+jNorm = jNorm .* reshape(probabilityDensity, 1, 1, :)
+jNorm = sum(jNorm,dims=3)
+
+skipSteps = 5
+
+fig1,(ax1,ax2) = subplots(1,2,figsize=(16*cm,8*cm))
+
+pcm = ax1.pcolormesh(t[1:skipSteps:end]*t0,x*x0,(abs2.(ψ_stored[end:-skipSteps:1,:])'),cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-2, vmax=1e-2), shading="auto")
+
+fig1.colorbar(pcm, ax=ax1, extend="min")
+
+ax1.set_ylabel("Position in (nm)")
+ax1.set_xlabel("Time in (fs)")
+ax1.set_title("Probability Density")
+# ax1.set_ylim([0,10])
+ ax1.set_xlim([-20,20])
+ax1.invert_xaxis()
+
+pcm2 = ax2.pcolormesh(t[1:skipSteps:end]*t0,x*x0,((ψ_Normalized[end:-skipSteps:1,:])'),cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-5e-2, vmax=5e-2))
+ax2.set_ylabel("Position in (nm)")
+ax2.set_xlabel("Time in (fs)")
+ax2.set_title("Probability Density Normalized")
+# ax2.set_ylim([0,10])
+ ax2.set_xlim([-20,20])
+ax2.invert_xaxis()
+
+fig1.colorbar(pcm2, ax=ax2, extend="max")
+
+
+fig1.tight_layout(pad=0.2)
+fig1.savefig("ProbabilityDensity.png",dpi=600)
+show()
+
 
 jrenorm = sum(jTemp.*(E[2]-E[1]),dims=2)
 
 plot(t*t0,jrenorm./maximum(jrenorm))
 plot(t*t0,jSweep[:,Int(nEnergy/2)]./maximum(jSweep[:,Int(nEnergy/2)]))
 show()
+
+normCurrent = vec(jrenorm./maximum(jrenorm))
+
+CSV.write("CurrentSignal500pm.csv", DataFrame(time = t*t0, current = normCurrent))
+
+# Find peaks in the current with standard julia function
+
+
 
 jscaled = jSweep * probabilityDensity
 
