@@ -18,6 +18,9 @@ using DataFrames
 using FFTW
 using DSP
 using Interpolations
+
+
+
 # Simulation Parameters
 
 N = 2000 # Number of points in spatial domain
@@ -242,3 +245,5 @@ fig2.tight_layout(pad=0.2)
 fig2.savefig("InstantaneousCurrent.png",dpi=600)
 fig2.savefig("InstantaneousCurrent.pdf",dpi=600)
 show()
+
+CSV.write("InstantaneousCurrents.csv", DataFrame(time = t*t0, currentSCG = jxr2 , currentLong = jxr))
