@@ -12,7 +12,7 @@ using DSP
 using JLD2
 
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-rcParams["font.size"] = 12
+rcParams["font.size"] = 8
 
 using Colors
 
@@ -234,30 +234,31 @@ skipSteps = 5
 
 fig1,(ax1,ax2) = subplots(1,2,figsize=(16*cm,8*cm))
 
-pcm = ax1.pcolormesh(t[1:skipSteps:end]*t0,x*x0,(abs2.(ψ_stored[end:-skipSteps:1,:])'),cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-2, vmax=1e-2), shading="auto")
+pcm = ax1.pcolormesh(t[1:skipSteps:end]*t0,x*x0,(abs2.(ψ_Normalized[end:-skipSteps:1,:])'),cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-1e-3, vmax=1e-3),rasterized=true, shading="auto")
 
-fig1.colorbar(pcm, ax=ax1, extend="min")
+fig1.colorbar(pcm, ax=ax1, extend="min",label="Density in (arb.u.)")
 
 ax1.set_ylabel("Position in (nm)")
 ax1.set_xlabel("Time in (fs)")
 ax1.set_title("Probability Density")
-# ax1.set_ylim([0,10])
+ax1.set_ylim([0,8])
  ax1.set_xlim([-20,20])
 ax1.invert_xaxis()
 
-pcm2 = ax2.pcolormesh(t[1:skipSteps:end]*t0,x*x0,((ψ_Normalized[end:-skipSteps:1,:])'),cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-5e-2, vmax=5e-2))
+pcm2 = ax2.pcolormesh(t[1:skipSteps:end]*t0,x*x0,(real(jNorm[end:-skipSteps:1,:])'),cmap="RdBu",norm=matplotlib[:colors][:Normalize](vmin=-10e-2, vmax=10e-2),rasterized=true,)
 ax2.set_ylabel("Position in (nm)")
 ax2.set_xlabel("Time in (fs)")
-ax2.set_title("Probability Density Normalized")
-# ax2.set_ylim([0,10])
+ax2.set_title("Probability Current")
+ax2.set_ylim([0,8])
  ax2.set_xlim([-20,20])
 ax2.invert_xaxis()
 
-fig1.colorbar(pcm2, ax=ax2, extend="max")
+fig1.colorbar(pcm2, ax=ax2, extend="max",label="Current in (arb.u.)")
 
 
-fig1.tight_layout(pad=0.2)
+fig1.tight_layout(pad=0.5)
 fig1.savefig("ProbabilityDensity.png",dpi=600)
+fig1.savefig("ProbabilityDensity.pdf",dpi=600)
 show()
 
 
