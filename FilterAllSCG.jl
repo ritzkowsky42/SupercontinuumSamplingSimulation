@@ -22,7 +22,7 @@ vars
 
 scg20230403 =vars["degenerateSCG_20230403_10ms_total"][:]
 scg20230403Cmplx = DSP.Util.hilbert(scg20230403)
-scg20230403Cmplx = scg20230403Cmplx./maximum(abs.(scg20230403Cmplx))
+scg20230403Cmplx = exp(-1im *pi/2).*scg20230403Cmplx./maximum(abs.(scg20230403Cmplx))
 
 scg20230415 = vars["degenerateSCG_20230415_10ms_total"][:]
 scg20230415Cmplx = DSP.Util.hilbert(scg20230415)

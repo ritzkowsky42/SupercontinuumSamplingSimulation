@@ -38,8 +38,8 @@ SCG0415 = CSV.read("FilteredWaveformSCG0415.csv",DataFrame)
 
 
 tdseTime = TDSE0329[:,1] .-100 
-tdseTime2 = TDSE0403[:,1] .-100
-tdseTime3 = TDSE0415[:,1] .-100
+tdseTime2 = TDSE0403[:,1] .+50
+tdseTime3 = TDSE0415[:,1] .+50
 
 
 tdseField = reverse(TDSE0329[:,2])./maximum(abs.(TDSE0329[:,2]))
@@ -148,14 +148,14 @@ end
 
 
 println(secondOrderMoment(meas1Time,real.(meas1Cmplx)))
-println(secondOrderMoment(tdseTime,tdseField3))
+println(secondOrderMoment(tdseTime3,tdseField3))
 println("---------------------------------")
 println(secondOrderMoment(meas2Time,real.(meas2Cmplx)))
 println(secondOrderMoment(tdseTime2,tdseField2))
 println("---------------------------------")
 
 println(secondOrderMoment(meas3Time,real.(meas3Cmplx)))
-println(secondOrderMoment(tdseTime3,tdseField))
+println(secondOrderMoment(tdseTime,tdseField))
 
 
 fig, ax = subplots(1, 1, figsize=(16, 8))  # Größe in Zoll
