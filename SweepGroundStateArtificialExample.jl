@@ -26,7 +26,7 @@ using JLD2
 # Simulation Parameters
 
 N = 500 # Number of points in spatial domain
-num_steps = 20000 # Number of time steps
+num_steps = 50000 # Number of time steps
 
 k_B = 8.617e-5 # Boltzmann constant in eV/K
 
@@ -86,10 +86,10 @@ Vosc = genPotential(pot1,field1,x, num_steps, N)
 u0 = statSolve(x, Vosc[1,:], E_fermi)
 
 
-delaySteps = 500
+delaySteps = 1000
 
 
-delayVals = collect(LinRange(-100/t0 , -100/t0, delaySteps))
+delayVals = collect(LinRange(-60/t0 , 60/t0, delaySteps))
 
 
 pump = CSV.read("FilteredWaveformDeg.csv", DataFrame,types=Complex{Float64})
@@ -110,7 +110,7 @@ interpSignal = extrapolate(interpolate((reverse(real.(signal[:,1])),),reverse(re
 #
 
 
-ShortSignal = pulseParams(fwhm = 6/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 1)
+ShortSignal = pulseParams(fwhm = 1/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 1)
 
 ShortSignalField = pulsefromStruct(t,ShortSignal)
 
@@ -132,11 +132,12 @@ fieldList = []
 tukeyWindow = DSP.Windows.tukey(length(t), 0.3)
 
 plot(t*t0,tukeyWindow.*interpShortSignal(t*t0))
+plot(t*t0,tukeyWindow.*-interpPump(t*t0))
 show()
 
 
 for (i,val) in enumerate(delayVals)
-    tempField = tukeyWindow.*(interpPump(t*t0) + (1 ./sqrt(3300)).*interpShortSignal(t*t0 .-val*t0))
+    tempField = tukeyWindow.*(-interpPump(t*t0) + (1 ./sqrt(3300)).*interpShortSignal(t*t0 .-val*t0))
     push!(fieldList,opticalField(tempField,abs.(tempField),0,1))
 end
 
@@ -195,58 +196,68 @@ qAvg = -(q[:,1] .- mean(q[1:20,1]))
 
 qAll = -(q[:,2:end] .- mean(q[1:20,2:end],dims=1))
 
-CSV.write("SampledArtificialWaveform.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg)), writeheader = true)
+CSV.write("SampledArtificialWaveform2.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg)), writeheader = true)
 
 
 
 
-# function FNemission(inField, criticalField, fieldEnhancement)
-#     heaviside(x) = ifelse(real(x) >= 0, 1, 0)
-#     out = heaviside.(real.(inField)) .* (real.(inField) .* fieldEnhancement).^2 .* exp.(-criticalField ./ abs.(fieldEnhancement .* real.(inField)))
-#     # out = heaviside.(real.(inField)) .* (real.(inField) .* fieldEnhancement).^6
-#     return out
-#   end
-
-
-# function FNemissionDerivative(inField, criticalField, fieldEnhancement)
-#     derCurrent = -ifelse(real(inField) >= 0, 1, 0) * 2 * ((real(inField) * fieldEnhancement^2) * exp(-criticalField / abs(fieldEnhancement * real(inField))) - fieldEnhancement^2 * criticalField * exp(-criticalField / abs(fieldEnhancement * real(inField))))
-#     return derCurrent
-# end
-
-# analyticalCurrent = zeros(length(delayVals))
-
-# for (i,val) in enumerate(delayVals)
-#     analyticalCurrent[i] = sum(FNemission.(fieldList[i].E, 76, 15))
-# end
-
-# analyticalCurrent = analyticalCurrent .- mean(analyticalCurrent[1:20])
-
-# analyticalCurrent = analyticalCurrent./maximum(analyticalCurrent)
+plot(delayVals*t0,qAvg./maximum(qAvg))
+show()
 
 
 
+function FNemission(inField, criticalField, fieldEnhancement)
+    heaviside(x) = ifelse(real(x) >= 0, 1, 0)
+    out = heaviside.(real.(inField)) .* (real.(inField) .* fieldEnhancement).^2 .* exp.(-criticalField ./ abs.(fieldEnhancement .* real.(inField)))
+    # out = heaviside.(real.(inField)) .* (real.(inField) .* fieldEnhancement).^6
+    return out
+  end
+
+
+function FNemissionDerivative(inField, criticalField, fieldEnhancement)
+    heaviside(x) = ifelse(real(x) >= 0, 1, 0)
+
+    derCurrent = -heaviside.(real.(inField)) .* 2 .* ((real.(inField) .* fieldEnhancement^2) .* exp.(-criticalField ./ abs.(fieldEnhancement * real.(inField))) - fieldEnhancement^2 .* criticalField * exp.(-criticalField ./ abs.(fieldEnhancement .* real.(inField))))
+    return derCurrent
+end
+
+analyticalCurrent = zeros(length(delayVals))
+
+for (i,val) in enumerate(delayVals)
+    analyticalCurrent[i] = sum(FNemission.(fieldList[i].E, 76, 15))
+end
+
+analyticalCurrent = analyticalCurrent .- mean(analyticalCurrent[1:20])
+
+analyticalCurrent = analyticalCurrent./maximum(analyticalCurrent)
 
 
 
 
 
 
+impResponse = FNemissionDerivative(-interpPump(delayVals.*t0), 76, 15)
 
-# fig2,ax2 = subplots(1,1,figsize=(16*cm,16*cm))
-# ax2.plot(delayVals*t0,qAvg./maximum(qAvg),label="Continuum State")
-# ax2.plot(delayVals*t0,samplingCurrent,label="Single Energy E_F")
-# ax2.plot(delayVals*t0,refpulse.E,label="Reference Pulse")
-# ax2.plot(delayVals*t0,analyticalCurrent,label="Analytical FN")
 
-# # ax2.loglog(fieldVals,0.7e-9 .* fieldVals .^ 10 )
-# ax2.set_xlabel("Time (fs)")
-# ax2.set_ylabel("Current in (arb.u.)")
-# #ax2.set_ylim([1e-10,1e4])
-# #ax2.set_xlim([-20,20])
-# ax2.legend()
-# fig2.savefig("SamplingVsRef.png",dpi=600)
-# fig2.savefig("SamplingVsRef.pdf",dpi=600)
-# show()
+plot(delayVals*t0,impResponse)
+show()
+
+
+
+fig2,ax2 = subplots(1,1,figsize=(16*cm,16*cm))
+ax2.plot(delayVals*t0,qAvg./maximum(qAvg),label="Continuum State")
+ax2.plot(delayVals*t0,interpShortSignal(delayVals*t0),label="Reference Pulse")
+ax2.plot(delayVals*t0,analyticalCurrent,label="Analytical FN")
+ax2.plot(delayVals*t0,impResponse./maximum(impResponse),label="Impulse Response") 
+# ax2.loglog(fieldVals,0.7e-9 .* fieldVals .^ 10 )
+ax2.set_xlabel("Time (fs)")
+ax2.set_ylabel("Current in (arb.u.)")
+#ax2.set_ylim([1e-10,1e4])
+#ax2.set_xlim([-20,20])
+ax2.legend()
+fig2.savefig("SamplingVsRef.png",dpi=600)
+fig2.savefig("SamplingVsRef.pdf",dpi=600)
+show()
 
 
 
