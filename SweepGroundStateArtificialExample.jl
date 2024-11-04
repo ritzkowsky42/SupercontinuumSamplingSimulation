@@ -135,6 +135,10 @@ plot(t*t0,tukeyWindow.*interpShortSignal(t*t0))
 plot(t*t0,tukeyWindow.*-interpPump(t*t0))
 show()
 
+CSV.write("ReferencePulse.csv", DataFrame(time = delayVals*t0, field = interpShortSignal(delayVals*t0), writeheader = true))
+
+
+
 
 for (i,val) in enumerate(delayVals)
     tempField = tukeyWindow.*(-interpPump(t*t0) + (1 ./sqrt(3300)).*interpShortSignal(t*t0 .-val*t0))
