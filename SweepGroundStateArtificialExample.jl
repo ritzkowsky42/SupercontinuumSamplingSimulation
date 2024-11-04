@@ -4,7 +4,7 @@ const cm = 1/2.54
 
 
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-rcParams["font.size"] = 12
+rcParams["font.size"] = 8
 
 using Colors
 using ProgressBars
@@ -107,7 +107,9 @@ show()
 
 interpSignal = extrapolate(interpolate((reverse(real.(signal[:,1])),),reverse(real.(signal[:,2])), Gridded(Linear())),0 ) 
 
-#
+# Calculation using the fast gate pulse
+interpPump = interpSignal
+
 
 
 ShortSignal = pulseParams(fwhm = 1/t0, t0 =0/t0, yc = yc, phi_ce = 0, F = 1)
@@ -135,13 +137,11 @@ plot(t*t0,tukeyWindow.*interpShortSignal(t*t0))
 plot(t*t0,tukeyWindow.*-interpPump(t*t0))
 show()
 
-CSV.write("ReferencePulse.csv", DataFrame(time = delayVals*t0, field = interpShortSignal(delayVals*t0), writeheader = true))
-
-
+CSV.write("ReferencePulse.csv", DataFrame(time = delayVals*t0, field = interpShortSignal(delayVals*t0)))
 
 
 for (i,val) in enumerate(delayVals)
-    tempField = tukeyWindow.*(-interpPump(t*t0) + (1 ./sqrt(3300)).*interpShortSignal(t*t0 .-val*t0))
+    tempField = tukeyWindow.*(interpPump(t*t0) + (1 ./sqrt(3300)).*interpShortSignal(t*t0 .-val*t0))
     push!(fieldList,opticalField(tempField,abs.(tempField),0,1))
 end
 
@@ -200,7 +200,7 @@ qAvg = -(q[:,1] .- mean(q[1:20,1]))
 
 qAll = -(q[:,2:end] .- mean(q[1:20,2:end],dims=1))
 
-CSV.write("SampledArtificialWaveform2.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg)), writeheader = true)
+CSV.write("SampledArtificialWaveformHighResShortGatePi.csv", DataFrame(time = delayVals*t0, field = qAvg./maximum(qAvg)), writeheader = true)
 
 
 
@@ -248,19 +248,19 @@ show()
 
 
 
-fig2,ax2 = subplots(1,1,figsize=(16*cm,16*cm))
-ax2.plot(delayVals*t0,qAvg./maximum(qAvg),label="Continuum State")
-ax2.plot(delayVals*t0,interpShortSignal(delayVals*t0),label="Reference Pulse")
-ax2.plot(delayVals*t0,analyticalCurrent,label="Analytical FN")
-ax2.plot(delayVals*t0,impResponse./maximum(impResponse),label="Impulse Response") 
+fig2,ax2 = subplots(1,1,figsize=(16*cm,12*cm))
+ax2.plot(delayVals*t0,qAvg./maximum(qAvg) .+ 1,label="CC: Continuum State")
+ax2.plot(delayVals*t0,interpShortSignal(delayVals*t0),label="CC: Reference Pulse")
+ax2.plot(delayVals*t0,analyticalCurrent .+ 1,label="CC: Analytical FN")
+ax2.plot(delayVals*t0,impResponse./maximum(impResponse).-1,label="Analytical Impulse Response") 
 # ax2.loglog(fieldVals,0.7e-9 .* fieldVals .^ 10 )
 ax2.set_xlabel("Time (fs)")
 ax2.set_ylabel("Current in (arb.u.)")
 #ax2.set_ylim([1e-10,1e4])
 #ax2.set_xlim([-20,20])
 ax2.legend()
-fig2.savefig("SamplingVsRef.png",dpi=600)
-fig2.savefig("SamplingVsRef.pdf",dpi=600)
+fig2.savefig("ImpulseResponseCalculation.png",dpi=600)
+fig2.savefig("ImpulseResponseCalculation.pdf",dpi=600)
 show()
 
 
