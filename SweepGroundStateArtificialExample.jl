@@ -88,8 +88,17 @@ u0 = statSolve(x, Vosc[1,:], E_fermi)
 
 delaySteps = 1000
 
-
 delayVals = collect(LinRange(-60/t0 , 60/t0, delaySteps))
+
+
+
+
+function FNemission(inField, criticalField, fieldEnhancement)
+    heaviside(x) = ifelse(real(x) >= 0, 1, 0)
+    out = heaviside.(real.(inField)) .* (real.(inField) .* fieldEnhancement).^2 .* exp.(-criticalField ./ abs.(fieldEnhancement .* real.(inField)))
+    # out = heaviside.(real.(inField)) .* (real.(inField) .* fieldEnhancement).^6
+    return out
+  end
 
 
 pump = CSV.read("FilteredWaveformDeg.csv", DataFrame,types=Complex{Float64})
@@ -98,7 +107,7 @@ interpPump = extrapolate(interpolate((real.(pump[:,1]),),real.(pump[:,2]), Gridd
 
 
 
-signal = CSV.read("FilteredWaveformSCG0415.csv", DataFrame)
+signal = CSV.read("FilteredWaveformSCG0403.csv", DataFrame)
 
 plot(real.(signal[:,1]),signal[:,2])
 plot(reverse(real.(signal[:,1])),reverse(signal[:,2]).+2)
@@ -120,21 +129,13 @@ interpShortSignal = extrapolate(interpolate((t .* t0,), real(ShortSignalField.E)
 
 
 
-# pulseList = []
-
-# ysignal = 1690/x0
-
-# for val in delayVals
-#     #push!(pulseList,tukeyPulse(t,1,val,0.5))
-#     push!(pulseList,pulsefromStruct(t,pulseParams(fwhm = signalDuration, t0=val, yc = ysignal, phi_ce = 0, F = 0.1)))
-# end
-
 fieldList = []
 
 tukeyWindow = DSP.Windows.tukey(length(t), 0.3)
 
 plot(t*t0,tukeyWindow.*interpShortSignal(t*t0))
 plot(t*t0,tukeyWindow.*-interpPump(t*t0))
+plot(t*t0,tukeyWindow.*FNemission(interpPump(t*t0), 76, 15))
 show()
 
 CSV.write("ReferencePulse.csv", DataFrame(time = delayVals*t0, field = interpShortSignal(delayVals*t0)))
@@ -209,13 +210,6 @@ plot(delayVals*t0,qAvg./maximum(qAvg))
 show()
 
 
-
-function FNemission(inField, criticalField, fieldEnhancement)
-    heaviside(x) = ifelse(real(x) >= 0, 1, 0)
-    out = heaviside.(real.(inField)) .* (real.(inField) .* fieldEnhancement).^2 .* exp.(-criticalField ./ abs.(fieldEnhancement .* real.(inField)))
-    # out = heaviside.(real.(inField)) .* (real.(inField) .* fieldEnhancement).^6
-    return out
-  end
 
 
 function FNemissionDerivative(inField, criticalField, fieldEnhancement)
